@@ -1,0 +1,2 @@
+# Preserve third-party license text verbatim.
+THIRD-PARTY-LICENSES.txt -whitespace

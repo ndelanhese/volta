@@ -1,0 +1,24 @@
+# Generated apps, archives, and local verification records
+/dist/
+*.app/
+*.dmg
+*.zip
+*.dSYM/
+/BUILD-SHA256.json
+/VERIFICACAO.md
+# Upstream implementation planning notes are available in the original repository.
+/Engine/docs/
+.DS_Store
+
+# Runtime data and private signing material
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.p12
+*.pem
+*.key
+*.keychain-db
+.env
+.env.*
+signing.local.mk

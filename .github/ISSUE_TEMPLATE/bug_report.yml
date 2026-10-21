@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible window, desktop, display, or permission problem.
+labels: [bug]
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: macOS version, Mac chip, Volta version, displays, dock/connection type, and affected apps.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include expected behavior, actual behavior, and whether fullscreen or Split View was involved.
+    validations:
+      required: true
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Permissions and logs
+      description: Accessibility/Screen Recording status and relevant sanitized log lines. Remove window titles and personal data.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed personal information from this report and attachments.
+          required: true

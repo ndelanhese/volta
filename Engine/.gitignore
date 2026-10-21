@@ -1,0 +1,8 @@
+/spaceswitch
+/spacekeeper
+.DS_Store
+# signing secrets / local config — never commit
+*.p12
+*.pem
+*.keychain-db
+signing.local.mk

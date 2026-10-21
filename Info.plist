@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleExecutable</key><string>Volta</string>
+    <key>CFBundleIdentifier</key><string>local.volta.app</string>
+    <key>CFBundleName</key><string>Volta</string>
+    <key>CFBundleDisplayName</key><string>Volta</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>26.4</string>
+    <key>LSUIElement</key><true/>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSAccessibilityUsageDescription</key><string>Volta precisa mover e redimensionar suas janelas para restaurar organização de monitores e mesas.</string>
+    <key>NSScreenCaptureUsageDescription</key><string>Volta lê somente títulos de janelas para identificá-las entre mesas. Não captura imagens ou áudio.</string>
+</dict></plist>
