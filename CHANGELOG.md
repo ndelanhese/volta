@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-beta.4 — 2026-10-20
+
+- Native application icon with full standard and Retina sizes.
+- Build bundles now live in a `.noindex` directory to keep disposable copies out of Spotlight.
+
 ## 1.0.0-beta.3 — 2026-10-20
 
 - Persistent local certificate signing for app and helper, replacing code-hash-bound ad hoc identities.

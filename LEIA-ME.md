@@ -63,7 +63,7 @@ Requer Swift Command Line Tools e Go 1.26. Na pasta deste arquivo:
 ./build.sh
 ```
 
-Produz `dist/Volta.app`, roda testes e verifica assinatura local. Sem Xcode completo ou conta
+Produz `dist/build.noindex/Volta.app`, roda testes e verifica assinatura local. A pasta `build.noindex` evita indexar cópias de build na busca. Sem Xcode completo ou conta
 Apple Developer. Desde beta.3, o build cria uma identidade local de assinatura permanente em
 `~/Library/Application Support/Volta/Signing/`. Preserve essa pasta privada: contém o chaveiro
 e sua senha, acessíveis apenas ao usuário. Não entra no app nem no Git. Nenhuma configuração

@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 SOURCE="$PWD"
-APP="$SOURCE/dist/Volta.app"
+APP="$SOURCE/dist/build.noindex/Volta.app"
 ./test.sh
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Helpers" "$APP/Contents/Resources"
 (
@@ -13,6 +13,7 @@ swiftc -swift-version 6 -O Lifecycle.swift Localization.swift Volta.swift \
     -o "$APP/Contents/MacOS/Volta" \
     -framework AppKit -framework SwiftUI -framework ApplicationServices -framework ServiceManagement
 cp Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 cp Engine/LICENSE "$APP/Contents/Resources/spacekit-LICENSE.txt"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"

@@ -42,6 +42,12 @@ Each launch used a new app process, started a new helper, and reported the engin
 This verifies normal app restart persistence on macOS 27.0.1; the certificate requirement regression
 separately verifies identity stability across changed executable builds.
 
+For beta.4, the ICNS was unpacked and all ten standard/Retina sizes (16–1024 pixels) were checked.
+The actual icon returned by `NSWorkspace` for the installed app was inspected. The signed update
+changed the app code hash while preserving its certificate requirement; both privacy grants survived
+installation and two further quit/reopen cycles. Spotlight and Launch Services each listed only the
+installed app after obsolete local copies were unregistered and moved to Trash.
+
 ## Manual acceptance matrix
 
 Use disposable windows and save useful work before exercising display changes.

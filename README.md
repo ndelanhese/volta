@@ -93,11 +93,14 @@ git clone https://github.com/ndelanhese/volta.git
 cd volta
 ./test.sh
 ./build.sh
-open dist/Volta.app
+ditto dist/build.noindex/Volta.app /Applications/Volta.app
+open /Applications/Volta.app
 ```
 
-`build.sh` runs the tests, compiles both executables, assembles `dist/Volta.app`, signs it locally,
-and verifies the bundle signature. Xcode's full IDE is not required.
+`build.sh` runs the tests, compiles both executables, assembles `dist/build.noindex/Volta.app`, signs it locally,
+and verifies the bundle signature. Build bundles live under `build.noindex` to keep disposable copies
+out of Spotlight. Quit the installed app before replacing it. Xcode's full IDE is not required.
+Artwork and native icon packaging are described in [Icon](docs/ICON.md).
 The app is standalone after compilation; users do not need Go, Node.js, REA, or a decompiler.
 
 GitHub Actions runs the Go, Swift, localization, and signing identity checks. Native display/Space integration requires
