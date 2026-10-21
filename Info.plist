@@ -7,11 +7,13 @@
     <key>CFBundleDisplayName</key><string>Volta</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleVersion</key><string>2</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>pt-BR</string></array>
     <key>LSMinimumSystemVersion</key><string>26.4</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
-    <key>NSAccessibilityUsageDescription</key><string>Volta precisa mover e redimensionar suas janelas para restaurar organização de monitores e mesas.</string>
-    <key>NSScreenCaptureUsageDescription</key><string>Volta lê somente títulos de janelas para identificá-las entre mesas. Não captura imagens ou áudio.</string>
+    <key>NSAccessibilityUsageDescription</key><string>Volta needs to move and resize your windows to restore display and desktop arrangements.</string>
+    <key>NSScreenCaptureUsageDescription</key><string>Volta only reads window titles to identify windows across desktops. It does not capture images or audio.</string>
 </dict></plist>

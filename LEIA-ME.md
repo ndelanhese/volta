@@ -6,6 +6,11 @@ com uma organização para cada conjunto de monitores. Copie Volta.app para Apli
 Prévia pública: Apple Silicon, macOS 27 ou mais recente; validada no macOS 27.0.1.
 Download em [Releases](https://github.com/ndelanhese/volta/releases). Assinatura local, sem notarização Apple.
 
+Interface disponível em inglês e português brasileiro. Por padrão segue idioma do macOS, com inglês
+como alternativa para idiomas não suportados. Seletor **Language / Idioma** muda imediatamente entre
+**Seguir macOS**, **English** e **Português (Brasil)** e salva preferência. Descrições de permissões do
+sistema também possuem traduções; diálogos do macOS seguem idioma configurado no sistema.
+
 ## Primeiro uso
 
 1. Abra Volta. Clique no ícone com três retângulos na barra de menus para mostrar controles.

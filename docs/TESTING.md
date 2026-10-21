@@ -12,6 +12,10 @@ data-directory isolation, and repeated historical Space UUID generations not cre
 `./build.sh` also compiles the app and verifies its ad hoc code signature.
 GitHub Actions exercises the noninteractive tests; it does not grant macOS privacy permissions.
 
+Localization checks also exercise system-language negotiation, explicit language overrides, English
+fallback for a missing key, zero/one/many display counts, retranslation of an existing status message,
+and matching keys/placeholders across all 40 English and Portuguese UI translations.
+
 ## Native verification performed
 
 On macOS 27.0.1, a disposable resizable AppKit window was moved between two existing regular desktops
@@ -20,6 +24,11 @@ was then restored using the actual helper: desktop, position, and dimensions all
 
 This proves the native primitives for that test window. It does not prove every application's
 behavior or every physical dock/display combination.
+
+For beta.2, the installed app was exercised through native Accessibility: switching English ↔ pt-BR
+updated real control labels, the already-visible status message, and the menu bar accessibility label.
+The Portuguese selection survived quitting and reopening. The selector was then returned to Follow macOS.
+The same localization checks passed against resources inside the compiled app bundle.
 
 ## Manual acceptance matrix
 
@@ -33,6 +42,8 @@ Use disposable windows and save useful work before exercising display changes.
 6. Test sleep/wake, reopening controls, pause/resume, and optional launch at login.
 7. Revoke Accessibility; the helper should stop. Re-grant it; the helper should start once.
 8. Quit the app; its helper should exit. An unexpected parent exit is detected on the next polling interval.
+9. Switch English ↔ Portuguese and check controls, existing status/error messages, the menu icon,
+   display plurals, and window sizing. Reopen the app and verify the selected language persists.
 
 Record OS version, Mac architecture, number of displays, connection/dock type, affected apps,
 whether native fullscreen/Split View was involved, and any sanitized failure messages.

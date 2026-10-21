@@ -1,0 +1,2 @@
+"NSAccessibilityUsageDescription" = "Volta needs to move and resize your windows to restore display and desktop arrangements.";
+"NSScreenCaptureUsageDescription" = "Volta only reads window titles to identify windows across desktops. It does not capture images or audio.";

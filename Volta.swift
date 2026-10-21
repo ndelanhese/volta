@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 @preconcurrency import ApplicationServices
 import ServiceManagement
 
@@ -10,13 +11,25 @@ final class VoltaModel: ObservableObject {
     @Published var recording = false
     @Published var running = false
     @Published var busy = false
-    @Published var message = "Autorize Acessibilidade para começar."
+    @Published private(set) var language = AppLanguage(rawValue: UserDefaults.standard.string(forKey: "appLanguage") ?? "system") ?? .system
+    @Published private var statusMessage = LocalizedMessage("status.permissionRequired")
     @Published var displayNames: [String] = []
     @Published var loginEnabled = SMAppService.mainApp.status == .enabled
     private var engine: Process?
     private var timer: Timer?
     private var logHandle: FileHandle?
     private var lastStatus: Data?
+    var localizer: Localizer { Localizer(language: language) }
+    var message: String { statusMessage.localized(using: localizer) }
+
+    func text(_ key: String, _ arguments: CVarArg...) -> String {
+        localizer.format(key, arguments: arguments)
+    }
+
+    func setLanguage(_ language: AppLanguage) {
+        UserDefaults.standard.set(language.rawValue, forKey: "appLanguage")
+        self.language = language
+    }
     let dataURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Volta", isDirectory: true)
 
@@ -28,7 +41,7 @@ final class VoltaModel: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: dataURL, withIntermediateDirectories: true,
                                                    attributes: [.posixPermissions: 0o700])
-        } catch { message = "Não foi possível criar dados locais: \(error.localizedDescription)" }
+        } catch { statusMessage = LocalizedMessage("status.storageFailure", error.localizedDescription) }
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
@@ -49,7 +62,7 @@ final class VoltaModel: ObservableObject {
                                     "running": running, "enabled": enabled,
                                     "pid": ProcessInfo.processInfo.processIdentifier,
                                     "helperPid": engine?.processIdentifier ?? 0,
-                                    "displays": displayNames.count]
+                                    "displays": displayNames.count, "language": localizer.languageCode]
         if let data = try? JSONSerialization.data(withJSONObject: status, options: [.sortedKeys]), data != lastStatus {
             try? data.write(to: dataURL.appendingPathComponent("status.json"), options: .atomic)
             lastStatus = data
@@ -60,7 +73,7 @@ final class VoltaModel: ObservableObject {
         enabled = value
         UserDefaults.standard.set(value, forKey: "enabled")
         refresh()
-        if !value { message = "Pausado. Janelas ficam como você deixar." }
+        if !value { statusMessage = LocalizedMessage("status.paused") }
     }
 
     private func process(_ args: [String]) -> Process {
@@ -101,18 +114,18 @@ final class VoltaModel: ObservableObject {
                     UserDefaults.standard.set(false, forKey: "enabled")
                     try? self.logHandle?.close()
                     self.logHandle = nil
-                    self.message = "Motor parou (código \(child.terminationStatus)). Consulte histórico e reative."
+                    self.statusMessage = LocalizedMessage("status.helperExited", child.terminationStatus)
                 }
             }
             try p.run()
             engine = p
             logHandle = handle
             running = true
-            message = "Ativo. Organização aprendida a cada 5 segundos."
+            statusMessage = LocalizedMessage("status.running")
         } catch {
             enabled = false
             running = false
-            message = "Falha ao iniciar: \(error.localizedDescription)"
+            statusMessage = LocalizedMessage("status.startFailure", error.localizedDescription)
         }
     }
 
@@ -149,13 +162,13 @@ final class VoltaModel: ObservableObject {
             loginEnabled = SMAppService.mainApp.status == .enabled
             if SMAppService.mainApp.status == .requiresApproval {
                 SMAppService.openSystemSettingsLoginItems()
-                message = "Autorize Volta nos Itens de Início."
+                statusMessage = LocalizedMessage("status.loginApproval")
             }
-        } catch { message = "Início de sessão: \(error.localizedDescription)" }
+        } catch { statusMessage = LocalizedMessage("status.loginFailure", error.localizedDescription) }
     }
 
     @discardableResult
-    func command(_ args: [String], success: String) async -> Bool {
+    func command(_ args: [String], successKey: String) async -> Bool {
         guard accessibility, !busy else { return false }
         busy = true
         defer { busy = false }
@@ -172,9 +185,9 @@ final class VoltaModel: ObservableObject {
                 p.terminationHandler = { child in continuation.resume(returning: child.terminationStatus) }
                 do { try p.run() } catch { continuation.resume(throwing: error) }
             }
-            if code == 0 { message = success; return true }
-            message = "Operação falhou (\(code)). Abra último resultado para detalhes."
-        } catch { message = error.localizedDescription }
+            if code == 0 { statusMessage = LocalizedMessage(successKey); return true }
+            statusMessage = LocalizedMessage("status.operationFailure", code)
+        } catch { statusMessage = LocalizedMessage("status.error", error.localizedDescription) }
         return false
     }
 
@@ -192,38 +205,38 @@ struct ControlView: View {
                 Image(systemName: "rectangle.3.group").font(.system(size: 32)).foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Volta").font(.largeTitle.bold())
-                    Text("Cada tela. Cada janela. No seu lugar.").foregroundStyle(.secondary)
+                    Text(model.text("app.tagline")).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Label(model.running ? "Ativo" : "Pausado", systemImage: model.running ? "checkmark.circle.fill" : "pause.circle")
+                Label(model.text(model.running ? "app.active" : "app.paused"), systemImage: model.running ? "checkmark.circle.fill" : "pause.circle")
                     .foregroundStyle(model.running ? Color.green : Color.secondary)
             }
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
-                    permission("Acessibilidade", detail: "Mover e redimensionar janelas.", granted: model.accessibility,
+                    permission(model.text("permission.accessibility"), detail: model.text("permission.accessibilityDetail"), granted: model.accessibility,
                                required: true, action: model.requestAccessibility)
                     Divider()
-                    permission("Gravação da tela", detail: "Opcional: identificar títulos nas outras mesas. Nenhuma imagem é gravada.",
+                    permission(model.text("permission.screenRecording"), detail: model.text("permission.screenRecordingDetail"),
                                granted: model.recording, required: false, action: model.requestRecording)
                 }.padding(8)
             }
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Restaurar ao conectar ou desconectar telas", isOn: Binding(get: { model.enabled }, set: model.setEnabled))
+                    Toggle(model.text("automation.toggle"), isOn: Binding(get: { model.enabled }, set: model.setEnabled))
                         .disabled(!model.accessibility || model.busy)
-                    Text("Organize uma vez em cada configuração. Aguarde 5 segundos antes de desconectar. Após mudar telas, Volta espera 10 segundos de estabilidade para restaurar.")
+                    Text(model.text("automation.instructions"))
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Divider()
-                    Label("\(model.displayNames.count) tela(s): \(model.displayNames.joined(separator: ", "))", systemImage: "display.2")
+                    Label(model.localizer.displaySummary(count: model.displayNames.count, names: model.displayNames.joined(separator: ", ")), systemImage: "display.2")
                         .font(.callout).fixedSize(horizontal: false, vertical: true)
                     HStack {
-                        Button("Memorizar agora") {
-                            Task { await model.command(["remember"], success: "Organização memorizada e recuperação salva neste Mac.") }
+                        Button(model.text("action.remember")) {
+                            Task { await model.command(["remember"], successKey: "status.remembered") }
                         }
-                        Button("Restaurar organização") {
-                            Task { await model.command(["owe"], success: "Restauração solicitada. Aguarde até 5 segundos.") }
+                        Button(model.text("action.restore")) {
+                            Task { await model.command(["owe"], successKey: "status.restoreRequested") }
                         }.buttonStyle(.borderedProminent).disabled(!model.running)
                         if model.busy { ProgressView().controlSize(.small) }
                     }.disabled(!model.accessibility || model.busy)
@@ -234,17 +247,23 @@ struct ControlView: View {
                 .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
 
             HStack {
-                Button("Dados locais", action: model.openData)
-                Button("Histórico", action: model.openLog)
+                Button(model.text("action.data"), action: model.openData)
+                Button(model.text("action.history"), action: model.openLog)
                 Menu {
-                    Button("Último resultado", action: model.openResult)
-                    Toggle("Abrir ao iniciar sessão", isOn: Binding(get: { model.loginEnabled }, set: model.toggleLogin))
+                    Button(model.text("action.lastResult"), action: model.openResult)
+                    Toggle(model.text("action.launchAtLogin"), isOn: Binding(get: { model.loginEnabled }, set: model.toggleLogin))
                     Divider()
-                    Button("Sair do Volta") { NSApp.terminate(nil) }
+                    Button(model.text("action.quit")) { NSApp.terminate(nil) }
                 } label: { Image(systemName: "ellipsis.circle") }
                 .menuStyle(.borderlessButton).fixedSize()
+                .accessibilityLabel(model.text("menu.more"))
             }
-            Text("Gratuito · Local · Sem conta ou assinatura").font(.caption).foregroundStyle(.tertiary)
+            Picker(model.text("language.label"), selection: Binding(get: { model.language }, set: model.setLanguage)) {
+                ForEach(AppLanguage.allCases, id: \.self) { language in
+                    Text(model.text("language.\(language.rawValue)")).tag(language)
+                }
+            }
+            Text(model.text("app.footer")).font(.caption).foregroundStyle(.tertiary)
         }
         .padding(24).frame(width: 540)
     }
@@ -258,7 +277,7 @@ struct ControlView: View {
                 Text(detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
-            Button(granted ? "Ajustes" : "Autorizar", action: action)
+            Button(model.text(granted ? "action.settings" : "action.authorize"), action: action)
         }
     }
 }
@@ -268,6 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: VoltaModel!
     private var statusItem: NSStatusItem!
     private var window: NSWindow!
+    private var languageObserver: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if NSRunningApplication.runningApplications(withBundleIdentifier: "local.volta.app").count > 1 {
@@ -277,11 +297,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         model = VoltaModel()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.3.group", accessibilityDescription: "Volta — organização de janelas")
-        statusItem.button?.image?.isTemplate = true
         statusItem.button?.target = self
         statusItem.button?.action = #selector(showControls)
-        statusItem.button?.toolTip = "Volta — restaurar janelas e Spaces"
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 640), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.title = "Volta"
         window.isReleasedWhenClosed = false
@@ -289,6 +306,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = content
         window.setContentSize(content.fittingSize)
         window.center()
+        languageObserver = model.$language.sink { [weak self] language in
+            guard let self else { return }
+            let strings = Localizer(language: language)
+            self.statusItem.button?.image = NSImage(systemSymbolName: "rectangle.3.group", accessibilityDescription: strings.text("app.menuAccessibility"))
+            self.statusItem.button?.image?.isTemplate = true
+            self.statusItem.button?.toolTip = strings.text("app.tooltip")
+            Task { @MainActor [weak self] in
+                guard let self, let content = self.window.contentView else { return }
+                content.layoutSubtreeIfNeeded()
+                self.window.setContentSize(content.fittingSize)
+            }
+        }
         if !model.accessibility || !UserDefaults.standard.bool(forKey: "hasLaunched") { showControls() }
         UserDefaults.standard.set(true, forKey: "hasLaunched")
     }

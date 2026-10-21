@@ -9,10 +9,11 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Helpers" "$APP/Contents/Resources"
     cd Engine
     go build -trimpath -ldflags='-s -w' -o "$APP/Contents/Helpers/spacekeeper" ./cmd/spacekeeper
 )
-swiftc -swift-version 6 -O Lifecycle.swift Volta.swift \
+swiftc -swift-version 6 -O Lifecycle.swift Localization.swift Volta.swift \
     -o "$APP/Contents/MacOS/Volta" \
     -framework AppKit -framework SwiftUI -framework ApplicationServices -framework ServiceManagement
 cp Info.plist "$APP/Contents/Info.plist"
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
 cp Engine/LICENSE "$APP/Contents/Resources/spacekit-LICENSE.txt"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 cp THIRD-PARTY-LICENSES.txt "$APP/Contents/Resources/THIRD-PARTY-LICENSES.txt"

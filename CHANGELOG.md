@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-beta.2 — 2026-10-20
+
+- English and Brazilian Portuguese localization through native `.lproj` resources.
+- Automatic macOS language detection, English fallback, and a persistent in-app language selector.
+- Immediate translation of controls, menus, accessibility labels, and existing status/error messages.
+- Localized display-count plurals and system permission descriptions.
+- Localization checks covering language negotiation, overrides, fallback, placeholders, and all UI keys.
+
 ## 1.0.0-beta.1 — 2026-10-20
 
 Initial public preview.

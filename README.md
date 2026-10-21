@@ -10,7 +10,9 @@ Volta is a free, local macOS menu bar app that remembers window positions, sizes
 and Mission Control desktop assignments for each set of connected displays.
 It restores the corresponding arrangement when you dock or undock your Mac.
 
-No account, subscription, cloud service, or runtime AI dependency. The current interface is in Portuguese.
+No account, subscription, cloud service, or runtime AI dependency. Available in **English and Brazilian Portuguese**.
+The interface follows your macOS language by default; the in-app **Language** selector switches immediately
+and remembers your choice. Unsupported system languages fall back to English.
 
 [Leia em português](LEIA-ME.md) · [Download preview](https://github.com/ndelanhese/volta/releases) · [Report a bug](https://github.com/ndelanhese/volta/issues/new?template=bug_report.yml)
 
@@ -22,7 +24,7 @@ No account, subscription, cloud service, or runtime AI dependency. The current i
 - Waits ten seconds after the last display change before restoring, allowing macOS to settle.
 - Stages windows from hidden desktops when needed to restore their dimensions.
 - Recreates missing regular desktops after reconnection, without duplicating historical UUIDs.
-- Provides **Memorizar agora** (remember now), **Restaurar organização** (restore arrangement), pause,
+- Provides **Remember now**, **Restore arrangement**, pause,
   local recovery snapshots, a history log, and optional launch at login.
 
 Volta uses a native Swift/AppKit/SwiftUI interface and embeds a modified
@@ -43,15 +45,21 @@ The current release was built with Swift 6.4 and Go 1.26.0. A paid Apple Develop
 2. Extract it, move **Volta.app** to **Applications**, and open it.
 3. Grant **Accessibility** in System Settings → Privacy & Security. Volta needs it to move and resize windows.
 4. Optionally grant **Screen Recording** to identify window titles across hidden desktops. Volta does not record images or audio.
-5. With your external displays connected, arrange your windows and desktops, then click **Memorizar agora**.
-6. Disconnect your displays, arrange the laptop layout once, and click **Memorizar agora** again.
+5. With your external displays connected, arrange your windows and desktops, then click **Remember now**.
+6. Disconnect your displays, arrange the laptop layout once, and click **Remember now** again.
 
 Subsequent display changes restore the arrangement for that display set. Wait about ten seconds after
 the last display change. When rearranging manually, allow five seconds for learning before unplugging,
-or click **Memorizar agora** explicitly.
+or click **Remember now** explicitly.
 
 The menu bar icon opens the controls. The `…` menu contains optional launch at login and quit.
 Closing the controls leaves Volta running; quitting stops its helper.
+
+The **Language** selector offers **Follow macOS**, **English**, and **Português (Brasil)**. Buttons,
+menus, accessibility labels, display counts, and existing status/error messages update without restarting.
+macOS permission dialogs follow macOS language settings; their descriptions are localized too.
+Technical engine logs remain in English, and error details supplied by macOS follow the OS language.
+See [Localization](docs/LOCALIZATION.md) to add translations.
 
 ### Preview signing and permissions
 
@@ -99,7 +107,7 @@ attaching logs to a public issue. The app does not send telemetry or screenshots
 
 - The automatic arrangement model targets **regular Mission Control desktops**.
   Native fullscreen, Split View pairs, and windows assigned to all desktops are not reconstructed equivalently.
-- Some apps refuse Accessibility movement or resizing. Check **Histórico** for failed repairs.
+- Some apps refuse Accessibility movement or resizing. Check **History** for failed repairs.
 - The first visit to a new display configuration needs an initial arrangement.
 - Recreating missing desktops briefly opens Mission Control. Volta does not delete desktops.
 - Restoring an assignment does not reopen closed apps or recover documents.
@@ -111,6 +119,8 @@ attaching logs to a public issue. The app does not send telemetry or screenshots
 ```text
 Volta.swift        Native controls, permissions, and helper supervision
 Lifecycle.swift   Helper start/stop policy
+Localization.swift Language selection, formatting, and English fallback
+Resources/        Native en.lproj and pt-BR.lproj string tables
 Tests.swift       Lifecycle checks
 Engine/           Vendored, modified MIT spacekit engine and tests
 test.sh           Local and CI test entry point
