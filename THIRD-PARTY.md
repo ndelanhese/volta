@@ -13,3 +13,5 @@ Their license notices, plus the Go runtime license, are collected in `THIRD-PART
 and included in the app bundle.
 REA 6.7.0 was installed separately as a development inspection tool; Volta does not need Node,
 REA, a disassembler, a cloud service, or a subscription at runtime.
+
+- Native window/desktop/title observations now cross the C/Go boundary as binary property lists, preserving the same typed data with less serialization overhead.

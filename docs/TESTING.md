@@ -48,6 +48,11 @@ changed the app code hash while preserving its certificate requirement; both pri
 installation and two further quit/reopen cycles. Spotlight and Launch Services each listed only the
 installed app after obsolete local copies were unregistered and moved to Trash.
 
+For beta.5, native binary-plist transport preserved typed window/desktop observations, all automated
+checks passed, and the disposable-window desktop/frame restoration check passed again with the
+installed helper. Both permissions survived the update and two app restarts. Live localization also
+passed. See [Performance](PERFORMANCE.md) for the paired CPU samples and benchmark scope.
+
 ## Manual acceptance matrix
 
 Use disposable windows and save useful work before exercising display changes.

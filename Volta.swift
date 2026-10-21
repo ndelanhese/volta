@@ -49,10 +49,13 @@ final class VoltaModel: ObservableObject {
     }
 
     func refresh() {
-        accessibility = AXIsProcessTrusted()
-        recording = CGPreflightScreenCaptureAccess()
-        displayNames = NSScreen.screens.map(\.localizedName)
-        loginEnabled = SMAppService.mainApp.status == .enabled
+        let permitted = AXIsProcessTrusted()
+        let canRecord = CGPreflightScreenCaptureAccess()
+        let screens = NSScreen.screens.map(\.localizedName)
+        // Published assignments invalidate SwiftUI even when the value is unchanged.
+        if accessibility != permitted { accessibility = permitted }
+        if recording != canRecord { recording = canRecord }
+        if displayNames != screens { displayNames = screens }
         switch engineAction(enabled: enabled, permitted: accessibility, running: engine?.isRunning == true) {
         case .start: start()
         case .stop: stop()
@@ -67,6 +70,11 @@ final class VoltaModel: ObservableObject {
             try? data.write(to: dataURL.appendingPathComponent("status.json"), options: .atomic)
             lastStatus = data
         }
+    }
+
+    func refreshLoginStatus() {
+        let value = SMAppService.mainApp.status == .enabled
+        if loginEnabled != value { loginEnabled = value }
     }
 
     func setEnabled(_ value: Bool) {
@@ -323,6 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showControls() {
+        model.refreshLoginStatus()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -331,6 +340,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showControls()
         return true
     }
+
+    func applicationDidBecomeActive(_ notification: Notification) { model?.refreshLoginStatus() }
 
     func applicationWillTerminate(_ notification: Notification) { model?.stop() }
 }

@@ -105,6 +105,7 @@ The app is standalone after compilation; users do not need Go, Node.js, REA, or 
 
 GitHub Actions runs the Go, Swift, localization, and signing identity checks. Native display/Space integration requires
 an interactive Mac and is documented separately in [Testing](docs/TESTING.md).
+See [Performance](docs/PERFORMANCE.md) for measured CPU use and optimization checks.
 
 ## Local data
 

@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <ApplicationServices/ApplicationServices.h>
+#include "plist.h"
 
 // Private: maps an AX element to its CGWindowID. Same symbol AeroSpace and
 // others rely on; there is no public AXUIElement <-> CGWindowID bridge.
@@ -31,7 +32,7 @@ CFDataRef sk_window_titles(int pid) {
 	}
 	CFRelease(windows);
 	CFRelease(app);
-	CFDataRef d = CFPropertyListCreateData(NULL, (__bridge CFTypeRef)out, kCFPropertyListXMLFormat_v1_0, 0, NULL);
+	CFDataRef d = sk_plist((__bridge CFTypeRef)out);
 	return d;
 }
 

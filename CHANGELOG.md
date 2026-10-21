@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-beta.5 — 2026-10-20
+
+- Compact native plist transport for window, desktop, and title observations; no polling or settling delays changed.
+- Avoid SwiftUI redraws when observed values are unchanged.
+- Refresh launch-at-login status when opening or activating controls, instead of polling the system service.
+- Native bridge regression coverage for Unicode titles, exact desktop IDs, fractional frames, and payload size.
+
 ## 1.0.0-beta.4 — 2026-10-20
 
 - Native application icon with full standard and Retina sizes.

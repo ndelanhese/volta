@@ -57,11 +57,8 @@ static bool sk_session_locked(void) {
 	return locked;
 }
 
-// CF objects cross into Go as XML plist bytes; howett.net/plist decodes them.
-static CFDataRef sk_plist(CFTypeRef obj) {
-	if (!obj) return NULL;
-	return CFPropertyListCreateData(NULL, obj, kCFPropertyListXMLFormat_v1_0, 0, NULL);
-}
+// CF objects cross into Go as plist bytes; howett.net/plist decodes them.
+#include "plist.h"
 
 static CFDataRef sk_copy_managed_display_spaces(void) {
 	static sk_copy_displays_fn f = NULL;
