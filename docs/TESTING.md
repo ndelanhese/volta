@@ -13,7 +13,9 @@ data-directory isolation, and repeated historical Space UUID generations not cre
 Signing regression checks compile two different executable versions and require identical app/helper
 designated requirements, different code hashes, and a certificate-bound identity. A missing identity
 password must fail without regenerating a certificate. Test identities use temporary keychains and
-are removed afterward. These checks prove signing stability, not an actual macOS permission grant.
+are removed afterward. The signing check also passed with Homebrew OpenSSL first in PATH;
+certificate generation uses macOS's native OpenSSL to keep PKCS12 import compatible.
+These checks prove signing stability, not an actual macOS permission grant.
 GitHub Actions exercises the noninteractive tests; it does not grant macOS privacy permissions.
 
 Localization checks also exercise system-language negotiation, explicit language overrides, English

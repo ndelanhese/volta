@@ -30,15 +30,16 @@ else
     trap cleanup EXIT
     if [[ ! -d "$SIGNING_DIR" ]]; then
         mkdir -p "$SIGNING_DIR"
-        openssl rand -hex 32 > "$PASSWORD_FILE"
+        # Native LibreSSL produces PKCS12 files compatible with macOS security import.
+        /usr/bin/openssl rand -hex 32 > "$PASSWORD_FILE"
         PASSWORD=$(cat "$PASSWORD_FILE")
-        openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+        /usr/bin/openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
             -subj '/CN=Volta Local Signing' \
             -addext 'basicConstraints=critical,CA:FALSE' \
             -addext 'keyUsage=critical,digitalSignature' \
             -addext 'extendedKeyUsage=critical,codeSigning' \
             -keyout "$WORK/key.pem" -out "$WORK/cert.pem" >/dev/null 2>&1
-        openssl pkcs12 -export -inkey "$WORK/key.pem" -in "$WORK/cert.pem" \
+        /usr/bin/openssl pkcs12 -export -inkey "$WORK/key.pem" -in "$WORK/cert.pem" \
             -out "$WORK/identity.p12" -passout "pass:$PASSWORD" >/dev/null 2>&1
         RESTORE_SEARCH=1
         security create-keychain -p "$PASSWORD" "$KEYCHAIN"
@@ -52,7 +53,7 @@ else
     fi
     PASSWORD=$(cat "$PASSWORD_FILE")
     security unlock-keychain -p "$PASSWORD" "$KEYCHAIN"
-    IDENTITY=$(security find-certificate -c 'Volta Local Signing' -p "$KEYCHAIN" | openssl x509 -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')
+    IDENTITY=$(security find-certificate -c 'Volta Local Signing' -p "$KEYCHAIN" | /usr/bin/openssl x509 -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')
     [[ -n "$IDENTITY" ]] || { echo 'Local signing certificate missing.' >&2; exit 1; }
     codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --identifier local.volta.engine "$APP/Contents/Helpers/spacekeeper"
     codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --identifier local.volta.app "$APP"
