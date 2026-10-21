@@ -36,6 +36,12 @@ updated real control labels, the already-visible status message, and the menu ba
 The Portuguese selection survived quitting and reopening. The selector was then returned to Follow macOS.
 The same localization checks passed against resources inside the compiled app bundle.
 
+For beta.3, the installed `/Applications/Volta.app` was authorized with the persistent certificate.
+Two consecutive normal quit/reopen cycles preserved both Accessibility and Screen Recording grants.
+Each launch used a new app process, started a new helper, and reported the engine running.
+This verifies normal app restart persistence on macOS 27.0.1; the certificate requirement regression
+separately verifies identity stability across changed executable builds.
+
 ## Manual acceptance matrix
 
 Use disposable windows and save useful work before exercising display changes.
