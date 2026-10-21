@@ -55,6 +55,9 @@ else
     security unlock-keychain -p "$PASSWORD" "$KEYCHAIN"
     IDENTITY=$(security find-certificate -c 'Volta Local Signing' -p "$KEYCHAIN" | /usr/bin/openssl x509 -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')
     [[ -n "$IDENTITY" ]] || { echo 'Local signing certificate missing.' >&2; exit 1; }
+    # Some macOS versions require the keychain in the search list even with --keychain.
+    RESTORE_SEARCH=1
+    security list-keychains -d user -s "$KEYCHAIN" "${SEARCH_LIST[@]}"
     codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --identifier local.volta.engine "$APP/Contents/Helpers/spacekeeper"
     codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --identifier local.volta.app "$APP"
 fi
