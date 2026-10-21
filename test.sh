@@ -9,3 +9,5 @@ swiftc -swift-version 6 -O Lifecycle.swift Localization.swift LocalizationTests.
     cd Engine
     go test ./...
 )
+
+./scripts/test-signing.sh

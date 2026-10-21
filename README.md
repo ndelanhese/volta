@@ -63,13 +63,28 @@ See [Localization](docs/LOCALIZATION.md) to add translations.
 
 ### Preview signing and permissions
 
-Preview downloads are **ad hoc signed, not notarized by Apple**. macOS may require approval under
-System Settings → Privacy & Security before opening a downloaded build. You can also build from source.
-See [Apple's guidance for safely opening apps](https://support.apple.com/en-us/102445).
+Starting with beta.3, preview downloads use a persistent, self-signed certificate. They are **not
+notarized by Apple**. macOS may require approval under System Settings → Privacy & Security before
+opening a downloaded build. See [Apple's guidance for safely opening apps](https://support.apple.com/en-us/102445).
 
-Rebuilding changes the ad hoc signature and can invalidate an existing Accessibility or Screen Recording
-grant. If toggling the permission does not help, remove the old Volta entry and add the current
-`/Applications/Volta.app` again. Volta cannot grant itself these permissions.
+Earlier previews used ad hoc signatures tied to each executable's code hash. Updating could invalidate
+Accessibility and Screen Recording grants. The new signing identity remains the same across rebuilds.
+Migrating from an earlier preview, or switching between a downloaded app and your own build, requires
+one new authorization. Remove the old Volta entry and add `/Applications/Volta.app` if necessary.
+Permissions belong to macOS; Volta checks them directly and cannot grant itself access.
+
+Source builds create a free local signing identity once, in
+`~/Library/Application Support/Volta/Signing/`. Keep this directory private and preserve it when
+updating or moving the source checkout: it contains the signing keychain and its password, with
+owner-only permissions. It is not included in the app or committed to Git. The self-signed certificate
+is valid for ten years and is used only for code signing; no system trust settings are changed.
+Back up this directory securely. Losing it means creating a new identity and authorizing again.
+See [Apple's explanation of stable signing requirements](https://developer.apple.com/library/archive/technotes/tn2206/).
+
+`VOLTA_SIGNING_DIR=/absolute/private/path ./build.sh` overrides the identity location.
+`VOLTA_ADHOC=1 ./build.sh` explicitly opts into disposable signing for test artifacts; grants may
+be lost on every changed build. Normal builds fail if the saved identity is incomplete rather than
+silently replacing it.
 
 ## Build and test
 
@@ -85,7 +100,7 @@ open dist/Volta.app
 and verifies the bundle signature. Xcode's full IDE is not required.
 The app is standalone after compilation; users do not need Go, Node.js, REA, or a decompiler.
 
-GitHub Actions runs the Go tests and Swift lifecycle checks. Native display/Space integration requires
+GitHub Actions runs the Go, Swift, localization, and signing identity checks. Native display/Space integration requires
 an interactive Mac and is documented separately in [Testing](docs/TESTING.md).
 
 ## Local data

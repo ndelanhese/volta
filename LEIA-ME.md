@@ -64,8 +64,19 @@ Requer Swift Command Line Tools e Go 1.26. Na pasta deste arquivo:
 ```
 
 Produz `dist/Volta.app`, roda testes e verifica assinatura local. Sem Xcode completo ou conta
-Apple Developer. Builds usam assinatura ad hoc; macOS pode pedir novas permissões após
-recompilar. Para atualizar, saia do app antes de substituir a cópia instalada.
+Apple Developer. Desde beta.3, o build cria uma identidade local de assinatura permanente em
+`~/Library/Application Support/Volta/Signing/`. Preserve essa pasta privada: contém o chaveiro
+e sua senha, acessíveis apenas ao usuário. Não entra no app nem no Git. Nenhuma configuração
+de confiança do sistema é alterada. O certificado vale dez anos; faça backup seguro da pasta.
+
+A assinatura permanece igual entre recompilações. Migrar das versões antigas com assinatura
+ad hoc ou trocar entre download e build próprio exige nova autorização uma vez. Se necessário,
+remova a entrada antiga nos Ajustes e adicione `/Applications/Volta.app` novamente. Volta consulta
+as permissões reais do macOS, sem salvar um falso estado de autorização.
+
+Para atualizar, saia do app antes de substituir a cópia instalada. `VOLTA_SIGNING_DIR` permite
+escolher outro caminho absoluto para a identidade. `VOLTA_ADHOC=1 ./build.sh` usa assinatura
+descartável explicitamente; nesse modo, recompilar pode invalidar permissões.
 
 Código do motor e licença MIT ficam em `Engine/`; alterações locais e origem em `THIRD-PARTY.md`.
 

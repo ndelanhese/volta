@@ -9,7 +9,11 @@ The initial public preview passed 85 Go test functions on macOS 27.0.1 / Apple S
 Added regressions cover manual adoption of hidden-window intent and clearing pending repairs,
 data-directory isolation, and repeated historical Space UUID generations not creating surplus desktops.
 
-`./build.sh` also compiles the app and verifies its ad hoc code signature.
+`./build.sh` also compiles the app and verifies its persistent local certificate signature.
+Signing regression checks compile two different executable versions and require identical app/helper
+designated requirements, different code hashes, and a certificate-bound identity. A missing identity
+password must fail without regenerating a certificate. Test identities use temporary keychains and
+are removed afterward. These checks prove signing stability, not an actual macOS permission grant.
 GitHub Actions exercises the noninteractive tests; it does not grant macOS privacy permissions.
 
 Localization checks also exercise system-language negotiation, explicit language overrides, English
@@ -48,3 +52,6 @@ Use disposable windows and save useful work before exercising display changes.
 Record OS version, Mac architecture, number of displays, connection/dock type, affected apps,
 whether native fullscreen/Split View was involved, and any sanitized failure messages.
 Do not present a passing unit suite as proof of physical hotplug fidelity.
+
+10. With permissions granted, quit/reopen the installed app twice and verify both permissions remain.
+    Rebuild with the same signing directory, quit, replace the installed app, reopen, and check again.

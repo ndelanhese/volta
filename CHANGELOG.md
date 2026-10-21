@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-beta.3 — 2026-10-20
+
+- Persistent local certificate signing for app and helper, replacing code-hash-bound ad hoc identities.
+- Rebuilds reuse the saved private identity; incomplete identities fail rather than silently resetting grants.
+- Signing regression checks compare different executables and verify stable certificate requirements.
+- One-time permission migration is required when replacing the previous ad hoc previews.
+
 ## 1.0.0-beta.2 — 2026-10-20
 
 - English and Brazilian Portuguese localization through native `.lproj` resources.
