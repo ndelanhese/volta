@@ -59,8 +59,10 @@ All automated checks and the signed build passed. The installed update preserved
 through two normal restarts. The disposable-window helper test passed for desktop and frame
 restoration on a repeated run. An initial one-shot frame observation differed; the diagnostic
 was then changed to poll geometry for up to three seconds rather than assuming synchronous
-completion. Physical trackpad acceptance remains a separate user check; stopping the previous
-watcher eliminated the reported spontaneous movement. No display hotplug was performed in this run.
+completion. On 2026-10-25, the user confirmed that repeated trackpad desktop switches,
+including the requested slow/held gesture, kept windows in place with beta.6 running.
+Stopping the previous watcher had eliminated the reported spontaneous movement.
+No display hotplug was performed in this run.
 
 ## Manual acceptance matrix
 
