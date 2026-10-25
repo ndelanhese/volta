@@ -193,7 +193,7 @@ func (w *watcher) handle(e sysevents.Event) {
 // --- saving ---
 
 func (w *watcher) save(reason string) {
-	if w.poweringOff {
+	if w.poweringOff || w.asleep || w.spaces.Open() {
 		return
 	}
 	if w.displays.Open() {
@@ -204,7 +204,7 @@ func (w *watcher) save(reason string) {
 	var err error
 	sysevents.OnMain(func() { path, err = saveSnapshot(w.opt.keep, w.opt.settle) })
 	switch {
-	case errors.Is(err, errOverviewOpen):
+	case errors.Is(err, errOverviewOpen), errors.Is(err, skylight.ErrDisplayAnimating):
 		log.Printf("save (%s) skipped: %v", reason, err)
 	case err != nil:
 		log.Printf("save (%s) failed: %v", reason, err)
@@ -253,7 +253,7 @@ func (w *watcher) displaysSettled() {
 // does nothing while a disturbance is in progress: the screen is not
 // intent then.
 func (w *watcher) look(trigger string) {
-	if w.poweringOff || w.asleep || w.displays.Open() || w.boot != nil {
+	if w.poweringOff || w.asleep || w.displays.Open() || w.spaces.Open() || w.boot != nil {
 		return
 	}
 	// Two samples a moment apart: a look is only taken on a still screen.
@@ -261,7 +261,7 @@ func (w *watcher) look(trigger string) {
 	var err error
 	sysevents.OnMain(func() { first, err = sample() })
 	switch {
-	case errors.Is(err, errOverviewOpen):
+	case errors.Is(err, errOverviewOpen), errors.Is(err, skylight.ErrDisplayAnimating):
 		w.putOff(trigger, err.Error())
 		return
 	case err != nil:
@@ -275,7 +275,7 @@ func (w *watcher) look(trigger string) {
 	var moving bool
 	sysevents.OnMain(func() { moving, err = w.lookOnMain(trigger, first) })
 	switch {
-	case errors.Is(err, errOverviewOpen):
+	case errors.Is(err, errOverviewOpen), errors.Is(err, skylight.ErrDisplayAnimating):
 		w.putOff(trigger, err.Error())
 	case err != nil:
 		log.Printf("look (%s) failed: %v", trigger, err)
@@ -365,14 +365,7 @@ func (w *watcher) lookOnMain(trigger string, first []arrangement.Seen) (moving b
 		return false, err
 	}
 	visible := visibleKeys(s)
-	both := make(map[string]bool, len(visible)+len(w.prevVisible))
-	for k := range visible {
-		both[k] = true
-	}
-	for k := range w.prevVisible {
-		both[k] = true
-	}
-	ds := arrangement.Decide(recorded, arrangement.Look{Windows: seen, Visible: both})
+	ds := arrangement.Decide(recorded, arrangement.Look{Windows: seen, Visible: visible, PreviousVisible: w.prevVisible})
 	if err := w.repair(s, arr, ds); err != nil {
 		return false, err
 	}

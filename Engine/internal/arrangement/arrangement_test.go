@@ -71,7 +71,7 @@ func wantKinds(t *testing.T, ds []Decision, want ...Kind) {
 }
 
 func TestDecideFirstSightingAdopts(t *testing.T) {
-	ds := Decide(nil, Look{Windows: []Seen{saw(1, "S1", full)}, Visible: vis("S9")})
+	ds := Decide(nil, Look{Windows: []Seen{saw(1, "S1", full)}, Visible: vis("S1")})
 	wantKinds(t, ds, Adopt)
 	if ds[0].Window != 0 {
 		t.Fatalf("a never-seen window has no store identity yet, got %d", ds[0].Window)
@@ -106,14 +106,14 @@ func TestDecideMoveOffAVisibleSpaceIsAdopted(t *testing.T) {
 	wantKinds(t, ds, Adopt)
 }
 
-func TestDecideChangeOnAnUnseenSpaceIsOwed(t *testing.T) {
-	ds := Decide([]Recorded{rec(1, "S1", full)}, Look{Windows: []Seen{saw(1, "S1", shrunk)}, Visible: vis("S9")})
-	wantKinds(t, ds, Owe, Repair)
-	if ds[1].Move || !ds[1].Resize || ds[1].Want.Frame != full {
-		t.Fatalf("on the right space at the wrong frame: resize, wherever its space is: %+v", ds[1])
-	}
-	if p, ok := ds[1].Progress(); !ok || p != Attempted {
-		t.Fatalf("Progress = %v %v, want Attempted", p, ok)
+// Mission Control may leave the compositor bounds of hidden desktops offset
+// even across two identical samples. That alone must never stage or resize them.
+func TestDecideHiddenDesktopFrameChangesDoNotTriggerRepairs(t *testing.T) {
+	for _, x := range []float64{-1648, 1648, 4800, 11104} {
+		shifted := full
+		shifted.X = x
+		ds := Decide([]Recorded{rec(1, "S1", full)}, Look{Windows: []Seen{saw(1, "S1", shifted)}, Visible: vis("S9")})
+		wantKinds(t, ds)
 	}
 }
 
@@ -183,4 +183,23 @@ func TestDecideGivesUpWhenStillOnTheWrongSpaceAfterAnAttempt(t *testing.T) {
 func TestDecideIgnoresRecordedWindowsNotSeen(t *testing.T) {
 	ds := Decide([]Recorded{rec(1, "S1", full)}, Look{Visible: vis("S1")})
 	wantKinds(t, ds)
+}
+
+func TestDecideLeavingADesktopDoesNotAdoptItsCompositorOffset(t *testing.T) {
+	shifted := full
+	shifted.X = 1648
+	ds := Decide([]Recorded{rec(1, "S1", full)}, Look{Windows: []Seen{saw(1, "S1", shifted)}, Visible: vis("S2"), PreviousVisible: vis("S1")})
+	wantKinds(t, ds)
+}
+
+func TestDecideUserMoveFromPreviouslyVisibleDesktopIsAdopted(t *testing.T) {
+	ds := Decide([]Recorded{rec(1, "S1", full)}, Look{Windows: []Seen{saw(1, "S3", full)}, Visible: vis("S2"), PreviousVisible: vis("S1")})
+	wantKinds(t, ds, Adopt)
+}
+
+func TestDecideNewHiddenWindowWaitsUntilItsDesktopIsShown(t *testing.T) {
+	ds := Decide(nil, Look{Windows: []Seen{saw(1, "S1", full)}, Visible: vis("S2")})
+	wantKinds(t, ds)
+	ds = Decide(nil, Look{Windows: []Seen{saw(1, "S1", full)}, Visible: vis("S1")})
+	wantKinds(t, ds, Adopt)
 }

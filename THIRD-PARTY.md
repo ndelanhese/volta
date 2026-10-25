@@ -15,3 +15,5 @@ REA 6.7.0 was installed separately as a development inspection tool; Volta does 
 REA, a disassembler, a cloud service, or a subscription at runtime.
 
 - Native window/desktop/title observations now cross the C/Go boundary as binary property lists, preserving the same typed data with less serialization overhead.
+
+- Desktop-transition safety: native animation checks around geometry reads, Space-change quiet gating, and no inferred frame repair on hidden desktops.

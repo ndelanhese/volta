@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0-beta.6 — 2026-10-25
+
+- Prevent spontaneous window staging/resizing from compositor frame offsets on hidden desktops.
+- Separate currently visible desktops from previously visible ones when learning window frames.
+- Hold observations and snapshots during the desktop-change quiet period.
+- Reject native geometry while WindowServer reports a desktop animation, including a held swipe.
+- Keep trusted hidden frames in snapshots; defer unknown hidden geometry until its desktop is shown.
+- Preserve explicit restoration after display reconnection and application relaunch.
+
 ## 1.0.0-beta.5 — 2026-10-20
 
 - Compact native plist transport for window, desktop, and title observations; no polling or settling delays changed.

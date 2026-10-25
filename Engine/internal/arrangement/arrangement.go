@@ -60,11 +60,12 @@ type Seen struct {
 }
 
 // Look is one observation of the live session, taken when no disturbance is
-// in progress. Visible holds the keys of the spaces shown at this look or the
-// previous one: the only spaces whose windows the user can have touched.
+// in progress. Only currently visible frames represent user intent.
+// PreviousVisible also recognizes a deliberate move off a desktop just left.
 type Look struct {
-	Windows []Seen
-	Visible map[string]bool
+	Windows         []Seen
+	Visible         map[string]bool
+	PreviousVisible map[string]bool
 }
 
 type Kind int
@@ -87,11 +88,12 @@ type Decision struct {
 }
 
 // Decide compares each seen window with its record. A window with no record
-// or no placement is adopted where it is. A settled window that differs from
-// its placement is adopted when its old or new space was visible, and owed
-// otherwise. An owed window is released once seen in place, repaired at once,
-// and given up on when an attempt did not take. Recorded windows the look did
-// not see are left alone.
+// or no placement is adopted once its desktop is visible. A settled window that differs from
+// its placement is adopted when its old or new space was visible. A hidden
+// frame change alone is ignored: compositor offsets are not window intent.
+// A hidden space reassignment is owed. An owed window is released once seen
+// in place, repaired at once, and given up on when an attempt did not take.
+// Recorded windows the look did not see are left alone.
 func Decide(recorded []Recorded, look Look) []Decision {
 	byBinding := make(map[uint32]Recorded, len(recorded))
 	for _, r := range recorded {
@@ -101,16 +103,16 @@ func Decide(recorded []Recorded, look Look) []Decision {
 	for _, s := range look.Windows {
 		r, known := byBinding[s.Binding]
 		switch {
-		case !known:
-			out = append(out, Decision{Kind: Adopt, Seen: s})
-		case !r.Placed:
-			out = append(out, Decision{Kind: Adopt, Window: r.Window, Seen: s})
+		case !known || !r.Placed:
+			if look.Visible[s.Space] {
+				out = append(out, Decision{Kind: Adopt, Window: r.Window, Seen: s})
+			}
 		case r.Owed:
 			out = append(out, owed(r, s))
 		case r.Placement.InPlace(s.Placement):
-		case look.Visible[r.Space] || look.Visible[s.Space]:
+		case look.Visible[s.Space] || (r.Space != s.Space && (look.Visible[r.Space] || look.PreviousVisible[r.Space])):
 			out = append(out, Decision{Kind: Adopt, Window: r.Window, Seen: s})
-		default:
+		case r.Space != s.Space:
 			out = append(out, Decision{Kind: Owe, Window: r.Window, Seen: s}, owed(r, s))
 		}
 	}

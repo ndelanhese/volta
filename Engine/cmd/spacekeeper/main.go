@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cehbz/spacekit/internal/arrangement"
 	"github.com/cehbz/spacekit/internal/layout"
 	"github.com/cehbz/spacekit/internal/skylight"
 )
@@ -369,6 +370,9 @@ func gather() (*snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := skylight.CheckDisplayAnimation(displays); err != nil {
+		return nil, err
+	}
 	s := &snapshot{
 		winSpace:  make(map[uint32]uint64),
 		idToKey:   make(map[uint64]string),
@@ -453,6 +457,10 @@ func gather() (*snapshot, error) {
 			Frame:     layout.Rect{X: w.Bounds.X, Y: w.Bounds.Y, W: w.Bounds.Width, H: w.Bounds.Height},
 		})
 	}
+	// A gesture can begin while the window list is being read.
+	if err := skylight.CheckDisplayAnimation(displays); err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -486,9 +494,20 @@ func inspectCmd() error {
 }
 
 // buildLayout turns a gathered snapshot into a saveable layout.
-func buildLayout(s *snapshot) layout.Layout {
+func buildLayout(s *snapshot, recorded []arrangement.Recorded) layout.Layout {
 	l := layout.Layout{SavedAt: time.Now(), BootedAt: bootTime(), Spaces: s.spaces}
+	byBinding := make(map[uint32]arrangement.Recorded, len(recorded))
+	for _, r := range recorded {
+		byBinding[r.Binding] = r
+	}
 	for _, w := range s.windows {
+		if _, fs := s.fsWindow[w.ID]; !fs && !s.current[s.winSpace[w.ID]] {
+			r, ok := byBinding[w.ID]
+			if !ok || !r.Placed || r.Space != s.idToKey[s.winSpace[w.ID]] {
+				continue // wait until unknown hidden geometry can be observed on screen
+			}
+			w.Frame = r.Frame
+		}
 		sw := layout.SavedWindow{
 			BundleID:  w.BundleID,
 			OwnerName: w.OwnerName,
@@ -506,6 +525,23 @@ func buildLayout(s *snapshot) layout.Layout {
 	return l
 }
 
+func snapshotLayout(s *snapshot) (layout.Layout, error) {
+	st, err := openStore()
+	if err != nil {
+		return layout.Layout{}, err
+	}
+	defer st.Close()
+	arr, err := st.Arrangement(displaySet(s.spaces))
+	if err != nil {
+		return layout.Layout{}, err
+	}
+	recorded, err := st.Recorded(arr, bootTime())
+	if err != nil {
+		return layout.Layout{}, err
+	}
+	return buildLayout(s, recorded), nil
+}
+
 // errOverviewOpen is returned while Mission Control or App Exposé is
 // showing: the window list then holds thumbnail bounds, not a layout.
 var errOverviewOpen = errors.New("the overview is showing")
@@ -520,7 +556,10 @@ func saveSnapshot(keep int, settle time.Duration) (string, error) {
 	if layout.OverviewOpen(s.all) {
 		return "", errOverviewOpen
 	}
-	l := buildLayout(s)
+	l, err := snapshotLayout(s)
+	if err != nil {
+		return "", err
+	}
 	refs, _ := listSnapshots()
 	if n := newestSnap(refs); n != nil && n.l.Signature() == l.Signature() {
 		return "", nil
@@ -545,7 +584,10 @@ func saveCmd(explicit string, keep int, settle time.Duration) error {
 		if err != nil {
 			return err
 		}
-		l := buildLayout(s)
+		l, err := snapshotLayout(s)
+		if err != nil {
+			return err
+		}
 		if err := writeLayout(explicit, l); err != nil {
 			return err
 		}

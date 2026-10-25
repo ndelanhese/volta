@@ -53,6 +53,15 @@ checks passed, and the disposable-window desktop/frame restoration check passed 
 installed helper. Both permissions survived the update and two app restarts. Live localization also
 passed. See [Performance](PERFORMANCE.md) for the paired CPU samples and benchmark scope.
 
+For beta.6, regressions cover hidden desktop compositor offsets, the desktop just left,
+new hidden windows, explicit owed repairs, Space quiet-period gating, and snapshot geometry.
+All automated checks and the signed build passed. The installed update preserved both grants
+through two normal restarts. The disposable-window helper test passed for desktop and frame
+restoration on a repeated run. An initial one-shot frame observation differed; the diagnostic
+was then changed to poll geometry for up to three seconds rather than assuming synchronous
+completion. Physical trackpad acceptance remains a separate user check; stopping the previous
+watcher eliminated the reported spontaneous movement. No display hotplug was performed in this run.
+
 ## Manual acceptance matrix
 
 Use disposable windows and save useful work before exercising display changes.

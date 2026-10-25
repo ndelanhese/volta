@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cehbz/spacekit/internal/settle"
 )
@@ -27,5 +28,31 @@ func TestPutOffLogsOnce(t *testing.T) {
 	}
 	if n := strings.Count(buf.String(), "put off"); n != 1 {
 		t.Fatalf("logged %d put-off lines, want 1:\n%s", n, buf.String())
+	}
+}
+
+// No main-thread work (including a snapshot save) may start during the
+// quiet period after a Space notification. The main loop is deliberately
+// absent here: attempting to dispatch to it makes this regression fail.
+func TestSpaceSwitchHoldsLooksAndSnapshots(t *testing.T) {
+	for _, action := range []string{"look", "save"} {
+		t.Run(action, func(t *testing.T) {
+			w := &watcher{displays: settle.New(displayQuiet), spaces: settle.New(spaceQuiet)}
+			w.spaces.Note(time.Now())
+			done := make(chan struct{})
+			go func() {
+				if action == "look" {
+					w.look("interval")
+				} else {
+					w.save("interval")
+				}
+				close(done)
+			}()
+			select {
+			case <-done:
+			case <-time.After(200 * time.Millisecond):
+				t.Fatal("started main-thread work while a desktop switch was settling")
+			}
+		})
 	}
 }

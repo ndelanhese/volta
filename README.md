@@ -21,6 +21,8 @@ and remembers your choice. Unsupported system languages fall back to English.
 - Keeps separate arrangements for your laptop and external-display setups.
 - Remembers which regular Mission Control desktop each window belongs to.
 - Learns deliberate changes on visible desktops every five seconds.
+- Waits for desktop transitions to finish; hidden frame drift alone never triggers window movement.
+- Learns new windows when their desktop is shown; **Remember now** explicitly captures all desktops.
 - Waits ten seconds after the last display change before restoring, allowing macOS to settle.
 - Stages windows from hidden desktops when needed to restore their dimensions.
 - Recreates missing regular desktops after reconnection, without duplicating historical UUIDs.

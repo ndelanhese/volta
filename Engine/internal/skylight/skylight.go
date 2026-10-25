@@ -22,6 +22,7 @@ typedef int (*sk_conn_fn)(void);
 typedef unsigned long long (*sk_active_fn)(int);
 typedef CFArrayRef (*sk_copy_displays_fn)(int);
 typedef CFArrayRef (*sk_spaces_for_windows_fn)(int, int, CFArrayRef);
+typedef bool (*sk_display_animating_fn)(int, CFStringRef);
 
 static void *sk_handle(void) {
 	static void *h = NULL;
@@ -46,6 +47,17 @@ static unsigned long long sk_active_space(void) {
 	static sk_active_fn f = NULL;
 	if (!f) f = (sk_active_fn)sk_sym("SLSGetActiveSpace", "CGSGetActiveSpace");
 	return f ? f(sk_cid()) : 0;
+}
+
+static int sk_display_animating(const char *uuid) {
+	static sk_display_animating_fn f = NULL;
+	if (!f) f = (sk_display_animating_fn)sk_sym("SLSManagedDisplayIsAnimating", "CGSManagedDisplayIsAnimating");
+	if (!f) return -1;
+	CFStringRef display = CFStringCreateWithCString(NULL, uuid, kCFStringEncodingUTF8);
+	if (!display) return -1;
+	bool animating = f(sk_cid(), display);
+	CFRelease(display);
+	return animating ? 1 : 0;
 }
 
 static bool sk_session_locked(void) {
@@ -182,6 +194,27 @@ func ActiveSpaceID() uint64 {
 
 // SessionLocked reports whether the login session's screen is locked.
 func SessionLocked() bool { return bool(C.sk_session_locked()) }
+
+// ErrDisplayAnimating means compositor bounds are transient, including a
+// trackpad swipe held motionless between desktops.
+var ErrDisplayAnimating = errors.New("a desktop transition is in progress")
+
+// CheckDisplayAnimation rejects geometry from a desktop transition. Missing
+// native support is an error: silently trusting those bounds can move windows.
+func CheckDisplayAnimation(displays []Display) error {
+	for _, d := range displays {
+		uuid := C.CString(d.UUID)
+		state := C.sk_display_animating(uuid)
+		C.free(unsafe.Pointer(uuid))
+		switch state {
+		case -1:
+			return errors.New("desktop animation state unavailable")
+		case 1:
+			return ErrDisplayAnimating
+		}
+	}
+	return nil
+}
 
 // ManagedDisplaySpaces returns every display with its ordered spaces.
 func ManagedDisplaySpaces() ([]Display, error) {
