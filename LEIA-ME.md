@@ -26,6 +26,10 @@ Enquanto ativo, Volta aprende alterações nas mesas visíveis a cada 5 segundos
 intervalo antes de desconectar, ou use **Memorizar agora**. O primeiro uso de uma configuração
 nova precisa dessa organização inicial.
 
+Trocas de mesa aguardam a animação terminar. Deslocamentos de janelas em mesas ocultas não
+disparam correções nem substituem posições conhecidas nos snapshots. Janelas novas são aprendidas
+quando sua mesa aparece; **Memorizar agora** captura explicitamente todas as mesas.
+
 **Restaurar organização** solicita retorno ao registro aprendido para as telas atuais.
 **Pausar** permite deixar tudo como estiver. No menu `…`, **Abrir ao iniciar sessão** configura
 início automático; essa opção fica desligada até ser selecionada.
