@@ -23,15 +23,10 @@ import (
 // WindowServer's own window-return attempts give up ~7s after the first, so
 // displayQuiet after the last callback lands after macOS has finished.
 const (
-	displayQuiet  = 10 * time.Second
-	spaceQuiet    = 3 * time.Second
-	stillGap      = 400 * time.Millisecond // between the two samples of a look
-	launchDelay   = 1500 * time.Millisecond
-	sweepInterval = 15 * time.Second
-	// quietExit ends login convergence once nothing has happened for this
-	// long (no launch, no new match): the login storm is over. The cap is a
-	// backstop, not a tuning knob.
-	quietExit = 2 * time.Minute
+	displayQuiet = 10 * time.Second
+	spaceQuiet   = 3 * time.Second
+	stillGap     = 400 * time.Millisecond // between the two samples of a look
+	launchDelay  = 1500 * time.Millisecond
 	// savesEvery is how many interval looks pass between snapshot saves.
 	savesEvery = 3
 	// retention is how long history is kept.
@@ -41,28 +36,26 @@ const (
 )
 
 type watchOptions struct {
-	interval, settle, bootCap  time.Duration
-	forceBoot                  bool
+	interval, settle           time.Duration
 	keep                       int
 	frames, create, fullscreen bool
 }
 
 // watcher is the resident agent: it looks at the session on a timer and on
 // sleep and space-change events and reconciles it with the arrangement, owes
-// every window after a display change, saves snapshots, and runs the login
-// convergence. All SkyLight work runs on the main thread via
+// every window after a display change and saves snapshots. All SkyLight work runs on the main thread via
 // sysevents.OnMain; this loop only decides.
 type watcher struct {
 	opt      watchOptions
 	displays *settle.Window // an open display-reconfiguration burst
 	spaces   *settle.Window // debounce for active-space changes
 
-	boot                      *reconciler // non-nil while login convergence runs
-	bootStarted, bootActivity time.Time
-
 	store       *store.Store
-	burst       int64           // open display disturbance in the store, 0 if none
-	oweNext     bool            // a disturbance ended while the agent was down: owe at the next look
+	burst       int64 // open display disturbance in the store, 0 if none
+	oweNext     bool  // a recent display connection change awaits observation
+	hotplug     bool
+	displaySet  string
+	restoreBy   time.Time
 	prevVisible map[string]bool // space keys visible at the previous look
 	asleep      bool            // screens or system asleep: the timer still fires in dark wake
 	ticks       int
@@ -97,12 +90,8 @@ func (w *watcher) loop() {
 	parent, _ := strconv.Atoi(os.Getenv("SPACEKEEPER_PARENT_PID"))
 	tick := time.NewTicker(w.opt.interval)
 	defer tick.Stop()
-	sweep := time.NewTicker(sweepInterval)
-	defer sweep.Stop()
-
 	w.prune()
 	w.recoverDisturbances()
-	w.startBoot()
 	w.look("startup")
 	w.save("startup")
 	for {
@@ -127,8 +116,6 @@ func (w *watcher) loop() {
 			if w.ticks%pruneEvery == 0 {
 				w.prune()
 			}
-		case <-sweep.C:
-			w.sweep()
 		case <-settled:
 			w.displaysSettled()
 		case <-spaceQuietC:
@@ -160,6 +147,9 @@ func (w *watcher) prune() {
 func (w *watcher) handle(e sysevents.Event) {
 	switch e.Kind {
 	case sysevents.DisplayReconfigured:
+		if e.Flags&((1<<4)|(1<<5)) != 0 {
+			w.hotplug = true
+		}
 		if w.displays.Note(e.At) {
 			log.Printf("display change began (display %d, flags %#x); looks and saves held", e.Display, e.Flags)
 			if id, err := w.store.BeginDisturbance("display", e.At); err == nil {
@@ -179,11 +169,7 @@ func (w *watcher) handle(e sysevents.Event) {
 		w.spaces.Note(e.At)
 	case sysevents.AppLaunched:
 		time.Sleep(launchDelay) // let the app map its windows
-		if w.boot != nil {
-			w.bootPass(e.Name + " launched")
-		} else {
-			w.look(e.Name + " launched")
-		}
+		w.look(e.Name + " launched")
 	case sysevents.ScreensWake, sysevents.SystemWake:
 		w.asleep = false
 		log.Printf("%s", e.Kind)
@@ -193,7 +179,7 @@ func (w *watcher) handle(e sysevents.Event) {
 // --- saving ---
 
 func (w *watcher) save(reason string) {
-	if w.poweringOff || w.asleep || w.spaces.Open() {
+	if w.poweringOff || w.asleep || w.spaces.Open() || w.oweNext {
 		return
 	}
 	if w.displays.Open() {
@@ -218,9 +204,7 @@ func (w *watcher) save(reason string) {
 
 // --- looking ---
 
-// recoverDisturbances closes display disturbances left open by a restart
-// and arranges for the first look to owe every window, as their settle
-// would have.
+// recoverDisturbances closes display disturbances left open by a restart.
 func (w *watcher) recoverDisturbances() {
 	open, err := w.store.OpenDisturbances()
 	if err != nil {
@@ -229,8 +213,7 @@ func (w *watcher) recoverDisturbances() {
 	}
 	for _, d := range open {
 		w.store.EndDisturbance(d.ID, time.Now())
-		w.oweNext = true
-		log.Printf("a %s disturbance from %s was left open; windows will be owed", d.Kind, d.Began.Format("15:04:05"))
+		log.Printf("closed interrupted %s disturbance from %s", d.Kind, d.Began.Format("15:04:05"))
 	}
 }
 
@@ -240,11 +223,9 @@ func (w *watcher) displaysSettled() {
 		w.store.EndDisturbance(w.burst, time.Now())
 		w.burst = 0
 	}
-	if w.boot != nil {
-		w.bootPass("displays settled")
-		return
-	}
-	w.oweNext = true
+	w.oweNext = w.hotplug && w.displaySet != ""
+	w.hotplug = false
+	w.restoreBy = time.Now().Add(20 * time.Second)
 	w.look("display change")
 	w.save("after reconfiguration")
 }
@@ -253,7 +234,10 @@ func (w *watcher) displaysSettled() {
 // does nothing while a disturbance is in progress: the screen is not
 // intent then.
 func (w *watcher) look(trigger string) {
-	if w.poweringOff || w.asleep || w.displays.Open() || w.spaces.Open() || w.boot != nil {
+	if w.oweNext && time.Now().After(w.restoreBy) {
+		w.oweNext = false
+	}
+	if w.poweringOff || w.asleep || w.displays.Open() || w.spaces.Open() {
 		return
 	}
 	// Two samples a moment apart: a look is only taken on a still screen.
@@ -331,12 +315,16 @@ func (w *watcher) lookOnMain(trigger string, first []arrangement.Seen) (moving b
 		return true, nil
 	}
 	boot, now := bootTime(), time.Now()
-	arr, err := w.store.Arrangement(displaySet(s.spaces))
+	currentSet := displaySet(s.spaces)
+	restore := shouldRestore(w.oweNext, w.restoreBy, now, w.displaySet, currentSet)
+	w.oweNext = false
+	w.displaySet = currentSet
+	arr, err := w.store.Arrangement(currentSet)
 	if err != nil {
 		return false, err
 	}
 	// After reconnecting, recreate desktops macOS removed before resolving placements.
-	if w.oweNext && w.opt.create {
+	if restore && w.opt.create {
 		saved, err := w.store.Spaces(arr)
 		if err != nil {
 			return false, err
@@ -349,12 +337,11 @@ func (w *watcher) lookOnMain(trigger string, first []arrangement.Seen) (moving b
 	if err := w.store.SetSpaces(arr, s.spaces); err != nil {
 		return false, err
 	}
-	if w.oweNext {
+	if restore {
 		n, err := w.store.OweAll(arr, boot, now, trigger, bindings(seen))
 		if err != nil {
 			return false, err
 		}
-		w.oweNext = false
 		log.Printf("%s: %d window(s) owed their placement", trigger, n)
 	}
 	recorded, err := w.store.Recorded(arr, boot)
@@ -365,9 +352,12 @@ func (w *watcher) lookOnMain(trigger string, first []arrangement.Seen) (moving b
 		return false, err
 	}
 	visible := visibleKeys(s)
-	ds := arrangement.Decide(recorded, arrangement.Look{Windows: seen, Visible: visible, PreviousVisible: w.prevVisible})
-	if err := w.repair(s, arr, ds); err != nil {
-		return false, err
+	ds := observe(recorded, seen, visible)
+	if restore {
+		ds = arrangement.Decide(recorded, arrangement.Look{Windows: seen, Visible: visible, PreviousVisible: w.prevVisible})
+		if err := w.repair(s, arr, ds); err != nil {
+			return false, err
+		}
 	}
 	if err := w.store.Apply(arr, boot, now, trigger, ds); err != nil {
 		return false, err
@@ -378,6 +368,10 @@ func (w *watcher) lookOnMain(trigger string, first []arrangement.Seen) (moving b
 	w.prevVisible = visible
 	logDecisions(trigger, ds)
 	return false, nil
+}
+
+func shouldRestore(pending bool, deadline, now time.Time, before, after string) bool {
+	return pending && now.Before(deadline) && before != "" && after != "" && before != after
 }
 
 // rebind binds every seen window no record of this boot claims to the record
@@ -668,71 +662,4 @@ func logDecisions(trigger string, ds []arrangement.Decision) {
 		line += ": " + strings.Join(touched, "; ")
 	}
 	log.Print(line)
-}
-
-// --- login convergence ---
-
-func (w *watcher) startBoot() {
-	if !w.opt.forceBoot {
-		refs, err := listSnapshots()
-		if err != nil {
-			log.Printf("login convergence skipped: cannot read history: %v", err)
-			return
-		}
-		if !layout.FirstStartOfBoot(layouts(refs), bootTime()) {
-			log.Printf("login convergence skipped: this boot already has snapshots")
-			return
-		}
-	}
-	l, path, err := resolveSnapshot("", "", false, false, w.opt.settle)
-	if err != nil {
-		log.Printf("login convergence skipped: %v", err)
-		return
-	}
-	st := l.Stats()
-	log.Printf("login convergence from %s (saved %s): %d windows, %s",
-		filepath.Base(path), l.SavedAt.Format("2006-01-02 15:04"), st.Windows, displaySummary(st))
-	w.boot = newReconciler(l, w.opt.frames, w.opt.fullscreen)
-	w.bootStarted, w.bootActivity = time.Now(), time.Now()
-	w.bootPassCreate("startup", w.opt.create)
-}
-
-func (w *watcher) bootPass(trigger string) { w.bootPassCreate(trigger, false) }
-
-func (w *watcher) bootPassCreate(trigger string, create bool) {
-	var done bool
-	var st passStats
-	var err error
-	sysevents.OnMain(func() { done, st, err = w.boot.pass(create) })
-	if err != nil {
-		log.Printf("login convergence (%s) failed: %v", trigger, err)
-		return
-	}
-	if st.matched > 0 {
-		w.bootActivity = time.Now()
-		log.Printf("login convergence (%s): +%d matched (%d moved, %d verified, %d in place), %s handled",
-			trigger, st.matched, st.moved, st.verified, st.inPlace, w.boot.progress())
-	}
-	if done {
-		log.Printf("login convergence complete (%s)", trigger)
-		w.boot = nil
-	}
-}
-
-func (w *watcher) sweep() {
-	if w.boot == nil {
-		return
-	}
-	w.bootPass("sweep")
-	if w.boot == nil {
-		return
-	}
-	switch {
-	case time.Since(w.bootActivity) > quietExit:
-		log.Printf("login convergence: quiet for %s, stopping at %s", quietExit, w.boot.progress())
-		w.boot = nil
-	case time.Since(w.bootStarted) > w.opt.bootCap:
-		log.Printf("login convergence: cap %s reached, stopping at %s", w.opt.bootCap, w.boot.progress())
-		w.boot = nil
-	}
 }

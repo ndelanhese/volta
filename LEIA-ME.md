@@ -16,9 +16,9 @@ sistema também possuem traduções; diálogos do macOS seguem idioma configurad
 1. Abra Volta. Clique no ícone com três retângulos na barra de menus para mostrar controles.
 2. Autorize **Acessibilidade**. A permissão opcional **Gravação da tela** permite identificar
    títulos de janelas nas outras mesas; Volta não grava imagens nem áudio.
-3. Com monitores conectados, organize janelas e mesas. Clique **Memorizar agora**.
-4. Desconecte monitores. Aguarde a mudança estabilizar, organize a tela do Mac e clique
-   **Memorizar agora** novamente. Cada conjunto de telas mantém seu próprio registro.
+3. Com monitores conectados, organize janelas e mesas e aguarde cinco segundos.
+4. Desconecte monitores, aguarde a mudança estabilizar e organize a tela do Mac.
+   Cada conjunto de telas mantém seu próprio registro.
 5. Nas próximas conexões/desconexões, aguarde cerca de **10 segundos após a última mudança**.
    O motor espera o macOS terminar de reorganizar as telas antes de restaurar.
 
@@ -30,7 +30,7 @@ Trocas de mesa aguardam a animação terminar. Deslocamentos de janelas em mesas
 disparam correções nem substituem posições conhecidas nos snapshots. Janelas novas são aprendidas
 quando sua mesa aparece; **Memorizar agora** captura explicitamente todas as mesas.
 
-**Restaurar organização** solicita retorno ao registro aprendido para as telas atuais.
+O Volta registra mudanças automaticamente a cada cinco segundos e restaura posições somente após mudança no conjunto de monitores conectados.
 **Pausar** permite deixar tudo como estiver. No menu `…`, **Abrir ao iniciar sessão** configura
 início automático; essa opção fica desligada até ser selecionada.
 

@@ -243,9 +243,6 @@ struct ControlView: View {
                         Button(model.text("action.remember")) {
                             Task { await model.command(["remember"], successKey: "status.remembered") }
                         }
-                        Button(model.text("action.restore")) {
-                            Task { await model.command(["owe"], successKey: "status.restoreRequested") }
-                        }.buttonStyle(.borderedProminent).disabled(!model.running)
                         if model.busy { ProgressView().controlSize(.small) }
                     }.disabled(!model.accessibility || model.busy)
                 }.padding(8)

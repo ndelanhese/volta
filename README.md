@@ -20,13 +20,13 @@ and remembers your choice. Unsupported system languages fall back to English.
 
 - Keeps separate arrangements for your laptop and external-display setups.
 - Remembers which regular Mission Control desktop each window belongs to.
-- Learns deliberate changes on visible desktops every five seconds.
+- Learns window changes every five seconds without moving windows during normal use.
 - Waits for desktop transitions to finish; hidden frame drift alone never triggers window movement.
 - Learns new windows when their desktop is shown; **Remember now** explicitly captures all desktops.
 - Waits ten seconds after the last display change before restoring, allowing macOS to settle.
 - Stages windows from hidden desktops when needed to restore their dimensions.
 - Recreates missing regular desktops after reconnection, without duplicating historical UUIDs.
-- Provides **Remember now**, **Restore arrangement**, pause,
+- Provides **Remember now**, pause,
   local recovery snapshots, a history log, and optional launch at login.
 
 Volta uses a native Swift/AppKit/SwiftUI interface and embeds a modified
@@ -47,12 +47,12 @@ The current release was built with Swift 6.4 and Go 1.26.0. A paid Apple Develop
 2. Extract it, move **Volta.app** to **Applications**, and open it.
 3. Grant **Accessibility** in System Settings → Privacy & Security. Volta needs it to move and resize windows.
 4. Optionally grant **Screen Recording** to identify window titles across hidden desktops. Volta does not record images or audio.
-5. With your external displays connected, arrange your windows and desktops, then click **Remember now**.
-6. Disconnect your displays, arrange the laptop layout once, and click **Remember now** again.
+5. With your external displays connected, arrange your windows and desktops and allow five seconds for learning.
+6. Disconnect your displays and arrange the laptop layout once.
 
 Subsequent display changes restore the arrangement for that display set. Wait about ten seconds after
 the last display change. When rearranging manually, allow five seconds for learning before unplugging,
-or click **Remember now** explicitly.
+or click **Remember now** explicitly. Automatic restoration only runs after the connected display set changes.
 
 The menu bar icon opens the controls. The `…` menu contains optional launch at login and quit.
 Closing the controls leaves Volta running; quitting stops its helper.

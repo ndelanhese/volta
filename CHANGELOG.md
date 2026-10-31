@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0 — 2026-10-31
+
+- Learn window movements automatically without restoring them during normal use.
+- Restore only after a connected display is added or removed and the display set changes; skip startup restoration and transient wake reconfigurations.
+- Keep hidden window geometry protected and remove the manual restore button.
+
 ## 1.0.0-beta.6 — 2026-10-25
 
 - Prevent spontaneous window staging/resizing from compositor frame offsets on hidden desktops.
